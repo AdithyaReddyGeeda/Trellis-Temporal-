@@ -1,0 +1,12 @@
+temporalio
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+asyncpg
+psycopg2-binary
+pydantic
+python-dotenv
+structlog
+pytest
+pytest-asyncio
