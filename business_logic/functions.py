@@ -58,6 +58,8 @@ async def order_received(order_id: str, db) -> Dict[str, Any]:
 
 async def order_validated(order: Dict[str, Any], db) -> bool:
     await flaky_call()
+    if not order.get("items"):
+        raise ValueError("No items to validate")
     async with get_db() as session:
         await session.execute(
             update(Order)
@@ -70,8 +72,6 @@ async def order_validated(order: Dict[str, Any], db) -> bool:
             event_type="order_validated",
         )
         await session.commit()
-    if not order.get("items"):
-        raise ValueError("No items to validate")
     log.info(
         "business_logic",
         event="order_validated",
