@@ -18,7 +18,7 @@ async def flaky_call() -> None:
     if rand_num < 0.33:
         raise RuntimeError("Forced failure for testing")
     if rand_num < 0.67:
-        await asyncio.sleep(300)
+        await asyncio.sleep(3)  # Slow but still within the 5 s start_to_close_timeout
 
 
 async def _log_event(

@@ -3,6 +3,7 @@ Register the order worker with workflow_execution_timeout=timedelta(seconds=15)
 so the full run stays within the 15s end-to-end budget.
 """
 
+import asyncio
 from datetime import timedelta
 from typing import Optional
 
@@ -19,10 +20,10 @@ from activities.order_activities import (
 from workflows.shipping_workflow import SHIPPING_TASK_QUEUE, ShippingWorkflow
 
 _ACTIVITY_RETRY = RetryPolicy(
-    maximum_attempts=10,
+    maximum_attempts=3,
     initial_interval=timedelta(seconds=1),
     backoff_coefficient=2.0,
-    maximum_interval=timedelta(seconds=4),
+    maximum_interval=timedelta(seconds=2),
 )
 
 
@@ -110,9 +111,8 @@ class OrderWorkflow:
                 lambda: self._approved or self._cancelled,
                 timeout=timedelta(seconds=8),
             )
-        except Exception as e:
-            if e.__class__.__name__ != "TimeoutError":
-                raise
+        except asyncio.TimeoutError:
+            pass
         if self._cancelled or not self._approved:
             return "cancelled_at_review"
 
@@ -141,10 +141,18 @@ class OrderWorkflow:
                     self._order,
                     id=f"{workflow.info().workflow_id}-shipping-{attempt}",
                     task_queue=SHIPPING_TASK_QUEUE,
-                    execution_timeout=timedelta(seconds=15),
+                    execution_timeout=timedelta(seconds=8),
                 )
                 break
             except Exception:
+                # Give Temporal time to deliver the dispatch_failed signal before checking the flag.
+                try:
+                    await workflow.wait_condition(
+                        lambda: self._dispatch_failed,
+                        timeout=timedelta(seconds=2),
+                    )
+                except asyncio.TimeoutError:
+                    pass
                 if not self._dispatch_failed:
                     raise
                 workflow.logger.warning(

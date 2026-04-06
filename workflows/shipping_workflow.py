@@ -1,4 +1,3 @@
-import os
 from datetime import timedelta
 
 from temporalio import workflow
@@ -7,7 +6,7 @@ from temporalio.exceptions import ActivityError, ApplicationError
 
 from activities.shipping_activities import dispatch_carrier, prepare_package
 
-SHIPPING_TASK_QUEUE = os.environ.get("SHIPPING_TASK_QUEUE", "shipping-tq")
+SHIPPING_TASK_QUEUE = "shipping-tq"
 
 
 @workflow.defn
@@ -15,9 +14,10 @@ class ShippingWorkflow:
     @workflow.run
     async def run(self, order: dict) -> str:
         activity_retry = RetryPolicy(
-            maximum_attempts=5,
+            maximum_attempts=3,
             initial_interval=timedelta(seconds=1),
             backoff_coefficient=2.0,
+            maximum_interval=timedelta(seconds=2),
         )
         await workflow.execute_activity(
             prepare_package,
