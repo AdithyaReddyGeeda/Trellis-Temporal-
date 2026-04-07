@@ -18,7 +18,7 @@ async def flaky_call() -> None:
     if rand_num < 0.33:
         raise RuntimeError("Forced failure for testing")
     if rand_num < 0.67:
-        await asyncio.sleep(3)  # Slow but still within the 5 s start_to_close_timeout
+        await asyncio.sleep(300)  # Expect the activity layer to time out before this completes
 
 
 async def _log_event(
@@ -45,6 +45,7 @@ async def order_received(order_id: str, db) -> Dict[str, Any]:
     }
     async with get_db() as session:
         session.add(Order(id=order_id, state="received"))
+        await session.flush()  # ensure Order row exists before FK-constrained Event insert
         await _log_event(session, order_id=order_id, event_type="order_received")
         await session.commit()
     log.info(

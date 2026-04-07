@@ -10,7 +10,7 @@ import os
 
 from dotenv import load_dotenv
 from temporalio.client import Client
-from temporalio.worker import Worker
+from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from activities.order_activities import (
     charge_payment,
@@ -33,6 +33,7 @@ async def main() -> None:
         client,
         task_queue=ORDER_TASK_QUEUE,
         workflows=[OrderWorkflow],
+        workflow_runner=UnsandboxedWorkflowRunner(),
         activities=[
             receive_order,
             validate_order,

@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 from temporalio.client import Client
-from temporalio.worker import Worker
+from temporalio.worker import UnsandboxedWorkflowRunner, Worker
 
 from activities.shipping_activities import dispatch_carrier, prepare_package
 from workflows.shipping_workflow import ShippingWorkflow
@@ -20,6 +20,7 @@ async def main() -> None:
         client,
         task_queue=SHIPPING_TASK_QUEUE,
         workflows=[ShippingWorkflow],
+        workflow_runner=UnsandboxedWorkflowRunner(),
         activities=[
             prepare_package,
             dispatch_carrier,
